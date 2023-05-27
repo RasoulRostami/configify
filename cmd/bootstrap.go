@@ -4,12 +4,18 @@ Copyright © 2023 Rasoul Rostami rasoul.rostami.dev@gmail.com
 package cmd
 
 import (
-	"configify/publishers"
+	"configify/databases"
 	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+func Performer(messages chan map[string]any) {
+	message := <-messages
+	fmt.Println(message)
+}
 
 // bootstrapCmd represents the bootstrap command
 var bootstrapCmd = &cobra.Command{
@@ -18,18 +24,22 @@ var bootstrapCmd = &cobra.Command{
 	Long:  `Delete all existing configuration file and write again.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("bootstrap called")
-		red := publishers.PublisherFactory(
+		log.Println("Bootstrap is called.")
+		messages := make(chan map[string]any, 100)
+
+		db := databases.PublisherFactory(
 			viper.GetString("publisher"),
 			viper.GetStringMap(fmt.Sprintf("%s_config", viper.GetString("publisher"))),
-			publishers.DecoderFactory(viper.GetString("decoder")))
+			databases.DecoderFactory(viper.GetString("decoder")))
+		go Performer(messages)
+		db.Keys("*", messages)
 
-		result, error := red.Get("mykey")
-		if error != nil {
-			fmt.Println(error)
-		}
-		fmt.Println(result["key1"])
-
+		//result, error := red.Get("mykey")
+		//if error != nil {
+		//	fmt.Println(error)
+		//}
+		//fmt.Println(result["key1"])
+		//red.Stream()
 	},
 }
 

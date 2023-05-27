@@ -1,4 +1,4 @@
-package publishers
+package databases
 
 import "encoding/json"
 

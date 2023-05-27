@@ -1,4 +1,4 @@
-package publishers
+package databases
 
 import (
 	"github.com/spf13/cast"
@@ -12,9 +12,9 @@ func DecoderFactory(decoderType string) Decoder {
 	}
 }
 
-func PublisherFactory(publisherType string, config map[string]any, decoder Decoder) Publisher {
+func PublisherFactory(publisherType string, config map[string]any, decoder Decoder) Database {
 	if publisherType == "redis" {
-		return NewRedisPublisher(
+		return NewRedisDB(
 			cast.ToString(config["address"]),
 			cast.ToString(config["password"]),
 			cast.ToInt(config["db"]),
