@@ -49,7 +49,7 @@ func (r *RedisDB) Keys(prefix string, messages chan Message, wg *sync.WaitGroup)
 				log.Printf("Error to get (%s) {%s}", key, err)
 			} else {
 				wg.Add(1)
-				messages <- Message{Key: key, Value: data}
+				messages <- Message{Key: key, Value: data, Type: Set}
 			}
 		}
 		// no more keys
