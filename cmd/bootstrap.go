@@ -7,15 +7,11 @@ import (
 	"configify/databases"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-func Performer(messages chan map[string]any) {
-	message := <-messages
-	fmt.Println(message)
-}
 
 // bootstrapCmd represents the bootstrap command
 var bootstrapCmd = &cobra.Command{
@@ -25,14 +21,17 @@ var bootstrapCmd = &cobra.Command{
 
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("Bootstrap is called.")
-		messages := make(chan map[string]any, 100)
+		messages := make(chan databases.Message, 100)
 
 		db := databases.PublisherFactory(
 			viper.GetString("publisher"),
 			viper.GetStringMap(fmt.Sprintf("%s_config", viper.GetString("publisher"))),
 			databases.DecoderFactory(viper.GetString("decoder")))
-		go Performer(messages)
-		db.Keys("*", messages)
+
+		var wg sync.WaitGroup
+		go Performer(messages, &wg)
+		db.Keys("*", messages, &wg)
+		wg.Wait()
 
 		//result, error := red.Get("mykey")
 		//if error != nil {

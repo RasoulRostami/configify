@@ -3,6 +3,7 @@ package databases
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -27,7 +28,7 @@ func (r *RedisDB) Get(key string) (map[string]any, error) {
 
 }
 
-func (r *RedisDB) Keys(prefix string, messages chan map[string]any) {
+func (r *RedisDB) Keys(prefix string, messages chan Message, wg *sync.WaitGroup) {
 	if prefix == "" {
 		prefix = "*"
 	}
@@ -36,7 +37,7 @@ func (r *RedisDB) Keys(prefix string, messages chan map[string]any) {
 	for {
 		var keys []string
 		var err error
-		keys, cursor, err = r.client.Scan(cursor, prefix, 0).Result()
+		keys, cursor, err = r.client.Scan(cursor, prefix, 100).Result()
 
 		if err != nil {
 			panic(err)
@@ -46,8 +47,10 @@ func (r *RedisDB) Keys(prefix string, messages chan map[string]any) {
 			data, err := r.Get(key)
 			if err != nil {
 				log.Printf("Error to get (%s) {%s}", key, err)
+			} else {
+				wg.Add(1)
+				messages <- Message{Key: key, Value: data}
 			}
-			messages <- data
 		}
 		// no more keys
 		if cursor == 0 {
