@@ -15,6 +15,20 @@ type RedisDB struct {
 	decoder Decoder
 }
 
+func NewRedisDB(address string, password string, db int, decoder Decoder) *RedisDB {
+	client := redis.NewClient(&redis.Options{
+		Addr:     address,
+		Password: password,
+		DB:       db,
+	})
+	redis := RedisDB{client: client, decoder: decoder}
+	pubsub := redis.client.Subscribe(
+		fmt.Sprintf("__keyevent@%d__:set", db),
+		fmt.Sprintf("__keyevent@%d__:del", db),
+	)
+	return &RedisDB{client: client, decoder: decoder, pubsub: pubsub}
+}
+
 func (r *RedisDB) Get(key string) (map[string]any, error) {
 	data, err := r.client.Get(key).Result()
 	if err != nil {
@@ -79,18 +93,4 @@ func (r *RedisDB) Stream() {
 		time.Sleep(1 * time.Second)
 		fmt.Println(time.Now())
 	}
-}
-
-func NewRedisDB(address string, password string, db int, decoder Decoder) *RedisDB {
-	client := redis.NewClient(&redis.Options{
-		Addr:     address,
-		Password: password,
-		DB:       db,
-	})
-	redis := RedisDB{client: client, decoder: decoder}
-	pubsub := redis.client.Subscribe(
-		fmt.Sprintf("__keyevent@%d__:set", db),
-		fmt.Sprintf("__keyevent@%d__:del", db),
-	)
-	return &RedisDB{client: client, decoder: decoder, pubsub: pubsub}
 }
