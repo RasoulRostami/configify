@@ -30,9 +30,7 @@ func NewUpdateZone(
 }
 
 func (z *UpdateZone) Update(message *databases.Message) {
-
-	file_name := fmt.Sprintf(z.config_file_name, message.Key)
-	file_path := fmt.Sprintf("%s/%s", z.config_file_dir, file_name)
+	file_path := configFileName(z.config_file_dir, z.config_file_name, message.Key)
 	// get tempalte
 	template, err := template.ParseFiles(z.config_template)
 	if err != nil {
@@ -49,9 +47,17 @@ func (z *UpdateZone) Update(message *databases.Message) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("DEBUG PowerDNS Update Zone %s", message.Key)
 	z.next.Update(message)
 }
 
-func (t *UpdateZone) Reverse(message *databases.Message) {
-	//t.Next.Reverse(message)
+func (z *UpdateZone) Reverse(message *databases.Message) {
+	file_path := configFileName(z.config_file_dir, z.config_file_name, message.Key)
+	err := os.Remove(file_path)
+	if err != nil {
+		fmt.Printf("ERROR PowerDNS Update Zone (%s) %s \n", message.Key, err)
+	} else {
+		log.Printf("DEBUG powerdns update zone %s \n", message.Key)
+	}
+	z.next.Reverse(message)
 }

@@ -3,21 +3,27 @@ package powerdns
 import (
 	"configify/databases"
 	"configify/services"
+	"fmt"
 	"log"
 
 	"github.com/spf13/cast"
 )
 
+func configFileName(dir string, name string, key string) string {
+	file_name := fmt.Sprintf(name, key)
+	return fmt.Sprintf("%s/%s", dir, file_name)
+}
+
 type PowerDNS struct {
 	Tbr            int
 	Name           string
 	Reload_command string
-	update_process services.Process
+	process        services.Process
 }
 
 func NewPowerDNS(config map[string]interface{}) *PowerDNS {
 	// creating needed process
-	bind_process := NewBind(cast.ToString(config["config_file_dir"]))
+	bind_process := NewBind(cast.ToString(config["config_file_dir"]), cast.ToString(config["config_file_name"]))
 	zone_process := NewUpdateZone(
 		cast.ToString(config["config_file_name"]),
 		cast.ToString(config["config_file_dir"]),
@@ -33,17 +39,19 @@ func NewPowerDNS(config map[string]interface{}) *PowerDNS {
 		Tbr:            cast.ToInt(config["tbr"]),
 		Name:           cast.ToString(config["name"]),
 		Reload_command: cast.ToString(config["reload_command"]),
-		update_process: check_message,
+		process:        check_message,
 	}
 }
 
 func (p *PowerDNS) Update(message *databases.Message) {
-	p.update_process.Update(message)
+	p.process.Update(message)
 	log.Printf("DEBUG PowerDNS update: (%s) \n", message.Key)
 }
 
-func (P *PowerDNS) Reverse(message *databases.Message) {
+func (p *PowerDNS) Reverse(message *databases.Message) {
+	p.process.Reverse(message)
+	log.Printf("DEBUG PowerDNS update: (%s) \n", message.Key)
 }
 
-func (P *PowerDNS) Reload() {
+func (p *PowerDNS) Reload() {
 }

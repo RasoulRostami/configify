@@ -10,9 +10,11 @@ import (
 )
 
 type RedisDB struct {
-	client  *redis.Client
-	pubsub  *redis.PubSub
-	decoder Decoder
+	client     *redis.Client
+	pubsub     *redis.PubSub
+	setCahnnel string
+	delChannel string
+	decoder    Decoder
 }
 
 func NewRedisDB(address string, password string, db int, decoder Decoder) *RedisDB {
@@ -22,14 +24,19 @@ func NewRedisDB(address string, password string, db int, decoder Decoder) *Redis
 		DB:       db,
 	})
 	redis := RedisDB{client: client, decoder: decoder}
-	pubsub := redis.client.Subscribe(
-		fmt.Sprintf("__keyevent@%d__:set", db),
-		fmt.Sprintf("__keyevent@%d__:del", db),
-	)
-	return &RedisDB{client: client, decoder: decoder, pubsub: pubsub}
+	setCahnnel := fmt.Sprintf("__keyevent@%d__:set", db)
+	delCahnnel := fmt.Sprintf("__keyevent@%d__:del", db)
+	pubsub := redis.client.Subscribe(setCahnnel, delCahnnel)
+	return &RedisDB{
+		client:     client,
+		decoder:    decoder,
+		pubsub:     pubsub,
+		setCahnnel: setCahnnel,
+		delChannel: delCahnnel,
+	}
 }
 
-func (r *RedisDB) Get(key string) (map[string]any, error) {
+func (r *RedisDB) Get(key string) (map[string]interface{}, error) {
 	data, err := r.client.Get(key).Result()
 	if err != nil {
 		return nil, err
@@ -75,21 +82,36 @@ func (r *RedisDB) Keys(prefix string, messages chan Message, wg *sync.WaitGroup)
 
 }
 
-// DB streaming, listen to pubsub events
-func (r *RedisDB) Stream() {
+// DB streaming, listen to pubsub events,
+func (r *RedisDB) startStream(messages chan Message, wg *sync.WaitGroup) {
+	ch := r.pubsub.Channel()
+	for msg := range ch {
+		if msg.Channel == r.setCahnnel {
+			data, err := r.Get(msg.Payload)
+			if err != nil {
+				log.Printf("WARNING Redis DB, Stream, (%s) {%s} \n", msg.Payload, err)
+			} else {
+				log.Printf("DEBUG Redis DB, Stream: Sent (%s) to channel", msg.Payload)
+				wg.Add(1)
+				messages <- Message{Key: msg.Payload, Value: data, Type: Set}
+			}
+		} else if msg.Channel == r.delChannel {
+			wg.Add(1)
+			messages <- Message{Key: msg.Payload, Type: Remove}
+		}
+	}
+}
+
+// Start stream and keep the main goroutine alive
+func (r *RedisDB) Stream(messages chan Message, wg *sync.WaitGroup) {
 	// Wait for confirmation that the subscription is created
 	_, err := r.pubsub.Receive()
 	if err != nil {
 		panic(err)
 	}
-
 	// Start listening for events in a separate goroutine
-	go func() {
-		ch := r.pubsub.Channel()
-		for msg := range ch {
-			fmt.Println(msg.Channel, msg.Payload)
-		}
-	}()
+	go r.startStream(messages, wg)
+
 	// Keep the main goroutine alive
 	for {
 		time.Sleep(1 * time.Second)

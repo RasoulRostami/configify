@@ -3,8 +3,8 @@ package databases
 type Type string
 
 const (
-	Set    Type = "Set"
-	Remove Type = "Remove"
+	Set    Type = "set"
+	Remove Type = "remove"
 )
 
 type Message struct {
