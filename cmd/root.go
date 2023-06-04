@@ -5,6 +5,8 @@ Copyright © 2023 Rasoul Rostami
 package cmd
 
 import (
+	"configify/services"
+	"configify/services/powerdns"
 	"fmt"
 	"os"
 
@@ -36,6 +38,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initServices)
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
@@ -69,5 +72,17 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	}
+}
+
+var ActiveServices = make([]services.Service, 0)
+
+// Init active services from config file.
+func initServices() {
+	for key, value := range viper.GetStringMap("services") {
+		switch key {
+		case "powerdns":
+			ActiveServices = append(ActiveServices, powerdns.NewPowerDNS(value.(map[string]interface{})))
+		}
 	}
 }

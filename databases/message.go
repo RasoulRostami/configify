@@ -9,6 +9,6 @@ const (
 
 type Message struct {
 	Key   string
-	Value map[string]any
+	Value map[string]interface{}
 	Type  Type
 }

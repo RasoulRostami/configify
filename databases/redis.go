@@ -60,8 +60,9 @@ func (r *RedisDB) Keys(prefix string, messages chan Message, wg *sync.WaitGroup)
 		for _, key := range keys {
 			data, err := r.Get(key)
 			if err != nil {
-				log.Printf("Error to get (%s) {%s}", key, err)
+				log.Printf("WARNING Redis DB, Keys, (%s) {%s} \n", key, err)
 			} else {
+				log.Printf("DEBUG Redis DB, Keys: Sent (%s) to channel", key)
 				wg.Add(1)
 				messages <- Message{Key: key, Value: data, Type: Set}
 			}
@@ -74,6 +75,7 @@ func (r *RedisDB) Keys(prefix string, messages chan Message, wg *sync.WaitGroup)
 
 }
 
+// DB streaming, listen to pubsub events
 func (r *RedisDB) Stream() {
 	// Wait for confirmation that the subscription is created
 	_, err := r.pubsub.Receive()

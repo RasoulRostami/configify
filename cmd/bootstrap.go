@@ -20,9 +20,8 @@ var bootstrapCmd = &cobra.Command{
 	Long:  `Delete all existing configuration file and write again.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Bootstrap is called.")
+		log.Println("INFO Bootstrap is called.")
 		messages := make(chan databases.Message, 100)
-
 		db := databases.PublisherFactory(
 			viper.GetString("publisher"),
 			viper.GetStringMap(fmt.Sprintf("%s_config", viper.GetString("publisher"))),
@@ -32,13 +31,7 @@ var bootstrapCmd = &cobra.Command{
 		go Performer(messages, &wg)
 		db.Keys("*", messages, &wg)
 		wg.Wait()
-
-		//result, error := red.Get("mykey")
-		//if error != nil {
-		//	fmt.Println(error)
-		//}
-		//fmt.Println(result["key1"])
-		//red.Stream()
+		log.Println("SUCCESS Bootstrap successfully finished.")
 	},
 }
 

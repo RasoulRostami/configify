@@ -2,15 +2,25 @@ package cmd
 
 import (
 	"configify/databases"
-	"fmt"
+	"log"
 	"sync"
 )
 
-// Get new message and call related service
+// Listen to channel, get new message and call services
 func Performer(messages chan databases.Message, wg *sync.WaitGroup,
 ) {
-	// TODO For loop and call related service
-	message := <-messages
-	fmt.Println(message.Key, message.Value)
-	wg.Done()
+	for {
+		message := <-messages
+		log.Printf("DEBUG Performer recived (%s)", message.Key)
+		if message.Type == databases.Set {
+			for _, service := range ActiveServices {
+				service.Update(&message)
+			}
+		} else {
+			for _, service := range ActiveServices {
+				service.Reverse(&message)
+			}
+		}
+		wg.Done()
+	}
 }
