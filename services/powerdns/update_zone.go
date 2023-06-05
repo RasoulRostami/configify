@@ -3,61 +3,66 @@ package powerdns
 import (
 	"configify/databases"
 	"configify/services"
-	"fmt"
 	"log"
 	"os"
 	"text/template"
 )
 
 type UpdateZone struct {
-	config_file_name string
-	config_file_dir  string
-	config_template  string
-	next             services.Process
+	configFileName string
+	configFileDir  string
+	configTemplate string
+	next           services.Process
 }
 
 func NewUpdateZone(
-	config_file_name string,
-	config_file_dir string,
-	config_template string,
+	configFileName string,
+	configFileDir string,
+	configTemplate string,
 	next services.Process) *UpdateZone {
 	return &UpdateZone{
-		config_file_name: config_file_name,
-		config_template:  config_template,
-		config_file_dir:  config_file_dir,
-		next:             next,
+		configFileName: configFileName,
+		configTemplate: configTemplate,
+		configFileDir:  configFileDir,
+		next:           next,
 	}
 }
 
-func (z *UpdateZone) Update(message *databases.Message) {
-	file_path := configFileName(z.config_file_dir, z.config_file_name, message.Key)
-	// get tempalte
-	template, err := template.ParseFiles(z.config_template)
+// write zone config in a file
+func (z *UpdateZone) Update(message *databases.Message) bool {
+	filePath := configFileName(z.configFileDir, z.configFileName, message.Key)
+
+	template, err := template.ParseFiles(z.configTemplate)
 	if err != nil {
-		panic(err)
+		log.Printf("ERROR PowerDNS Update Zone can not parse template %s \n", err)
+		return false
 	}
 	// Create the output file
-	outputFile, err := os.Create(file_path)
+	outputFile, err := os.Create(filePath)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("ERROR PowerDNS Update Zone can not create output file %s \n", err)
+		return false
 	}
 	defer outputFile.Close()
 	// Execute the template with the data and save it to the file
 	err = template.Execute(outputFile, message.Value)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("ERROR PowerDNS Update Zone can not execute template %s \n", err)
+		return false
 	}
-	log.Printf("DEBUG PowerDNS Update Zone %s", message.Key)
-	z.next.Update(message)
+	log.Printf("DEBUG PowerDNS Update Zone %s \n", message.Key)
+	return z.next.Update(message)
 }
 
-func (z *UpdateZone) Reverse(message *databases.Message) {
-	file_path := configFileName(z.config_file_dir, z.config_file_name, message.Key)
-	err := os.Remove(file_path)
+// remove config file
+func (z *UpdateZone) Reverse(message *databases.Message) bool {
+	filePath := configFileName(z.configFileDir, z.configFileName, message.Key)
+	err := os.Remove(filePath)
 	if err != nil {
-		fmt.Printf("ERROR PowerDNS Update Zone (%s) %s \n", message.Key, err)
+		log.Printf("ERROR PowerDNS Reverse Zone (%s) %s \n", message.Key, err)
+		return false
 	} else {
 		log.Printf("DEBUG powerdns update zone %s \n", message.Key)
 	}
-	z.next.Reverse(message)
+	return z.next.Reverse(message)
 }

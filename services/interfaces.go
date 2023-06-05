@@ -11,6 +11,6 @@ type Service interface {
 
 // Each service have got some process
 type Process interface {
-	Update(message *databases.Message)
-	Reverse(message *databases.Message)
+	Update(message *databases.Message) bool
+	Reverse(message *databases.Message) bool
 }

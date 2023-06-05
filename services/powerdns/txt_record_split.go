@@ -8,15 +8,15 @@ import (
 )
 
 type TxtRecordSplit struct {
-	Next services.Process
+	next services.Process
 }
 
 func NewTxtRecordSplit(next services.Process) *TxtRecordSplit {
-	return &TxtRecordSplit{Next: next}
+	return &TxtRecordSplit{next: next}
 }
 
-func (t *TxtRecordSplit) Update(message *databases.Message) {
-	// separete long TXT content
+// splite long txt content
+func (t *TxtRecordSplit) Update(message *databases.Message) bool {
 	dns_records := message.Value["dns_records"].([]interface{})
 	for i := 0; i < len(dns_records); i++ {
 		item := dns_records[i].(map[string]interface{})
@@ -25,12 +25,11 @@ func (t *TxtRecordSplit) Update(message *databases.Message) {
 		}
 	}
 	log.Printf("DEBUG PowerDNS TXT Record Split process (%s) \n", message.Key)
-	// call next step
-	t.Next.Update(message)
+	return t.next.Update(message)
 }
 
-func (t *TxtRecordSplit) Reverse(message *databases.Message) {
-	t.Next.Reverse(message)
+func (t *TxtRecordSplit) Reverse(message *databases.Message) bool {
+	return t.next.Reverse(message)
 }
 
 func (t *TxtRecordSplit) chunckString(longString string, maxLength int) string {

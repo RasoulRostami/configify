@@ -69,7 +69,7 @@ func (r *RedisDB) Keys(prefix string, messages chan Message, wg *sync.WaitGroup)
 			if err != nil {
 				log.Printf("WARNING Redis DB, Keys, (%s) {%s} \n", key, err)
 			} else {
-				log.Printf("DEBUG Redis DB, Keys: Sent (%s) to channel", key)
+				log.Printf("DEBUG Redis DB, Keys: Sent (%s) to channel \n", key)
 				wg.Add(1)
 				messages <- Message{Key: key, Value: data, Type: Set}
 			}
@@ -91,7 +91,7 @@ func (r *RedisDB) startStream(messages chan Message, wg *sync.WaitGroup) {
 			if err != nil {
 				log.Printf("WARNING Redis DB, Stream, (%s) {%s} \n", msg.Payload, err)
 			} else {
-				log.Printf("DEBUG Redis DB, Stream: Sent (%s) to channel", msg.Payload)
+				log.Printf("DEBUG Redis DB, Stream: Sent (%s) to channel \n", msg.Payload)
 				wg.Add(1)
 				messages <- Message{Key: msg.Payload, Value: data, Type: Set}
 			}

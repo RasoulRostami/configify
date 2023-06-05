@@ -7,33 +7,36 @@ import (
 	"regexp"
 )
 
-type CheckRelatedMessage struct {
-	Next         services.Process
-	Prefix       string
-	prefix_regex *regexp.Regexp
+type CheckMessage struct {
+	next        services.Process
+	prefix      string
+	prefixRegex *regexp.Regexp
 }
 
-func NewCheckRelatedmessage(prefix string, next services.Process) *CheckRelatedMessage {
+func NewCheckMessage(prefix string, next services.Process) *CheckMessage {
 	regex := regexp.MustCompile(prefix)
-	return &CheckRelatedMessage{Prefix: prefix, Next: next, prefix_regex: regex}
+	return &CheckMessage{prefix: prefix, next: next, prefixRegex: regex}
 }
 
-func (c *CheckRelatedMessage) isRelatedMessage(key string) bool {
-	return c.prefix_regex.MatchString(key)
+func (c *CheckMessage) isRelatedMessage(key string) bool {
+	return c.prefixRegex.MatchString(key)
 }
 
-// Check message key and if it is related go to next step
-func (c *CheckRelatedMessage) Update(message *databases.Message) {
+// Check message schema and message key, if it is ok go to next process
+func (c *CheckMessage) Update(message *databases.Message) bool {
 	if c.isRelatedMessage(message.Key) {
-		log.Printf("DEBUG (%s) was accepted in PowerDNS services \n", message.Key)
-		c.Next.Update(message)
+		log.Printf("DEBUG PowerDNS Check Message accepte (%s)  \n", message.Key)
+		return c.next.Update(message)
+	} else {
+		return false
 	}
-	log.Printf("DEBUG (%s) was rejected in PowerDNS services \n", message.Key)
 }
 
-// Check message key and if it is related go to next step
-func (c *CheckRelatedMessage) Reverse(message *databases.Message) {
+// Check message key
+func (c *CheckMessage) Reverse(message *databases.Message) bool {
 	if c.isRelatedMessage(message.Key) {
-		c.Next.Reverse(message)
+		log.Printf("DEBUG PowerDNS Check Message accepte (%s)  \n", message.Key)
+		return c.next.Reverse(message)
 	}
+	return false
 }
