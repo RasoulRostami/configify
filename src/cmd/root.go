@@ -5,6 +5,7 @@ Copyright © 2023 Rasoul Rostami
 package cmd
 
 import (
+	"configify/helpers"
 	"configify/services"
 	"configify/services/powerdns"
 	"fmt"
@@ -39,7 +40,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	cobra.OnInitialize(initServices)
-
+	cobra.OnInitialize(initLogger)
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
@@ -85,4 +86,16 @@ func initServices() {
 			ActiveServices = append(ActiveServices, powerdns.NewPowerDNS(value.(map[string]interface{})))
 		}
 	}
+}
+
+func initLogger() {
+	logConfig := viper.GetStringMap("logging")
+	helpers.NewLogger(
+		logConfig["error_log_path"].(string),
+		logConfig["success_log_path"].(string),
+		uint32(logConfig["log_level"].(int)),
+		logConfig["rotation_log_time"].(int),
+		logConfig["rotation_log_size"].(int),
+		logConfig["rotation_log_backup"].(int),
+	)
 }

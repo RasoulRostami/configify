@@ -5,8 +5,8 @@ package cmd
 
 import (
 	"configify/databases"
+	"configify/helpers"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/spf13/cobra"
@@ -20,7 +20,7 @@ var bootstrapCmd = &cobra.Command{
 	Long:  `Delete all existing configuration file and write again.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("INFO Bootstrap is called.")
+		helpers.Logger.Info("Bootstrap is called.")
 		messages := make(chan databases.Message, 100)
 		db := databases.PublisherFactory(
 			viper.GetString("publisher"),
@@ -31,7 +31,7 @@ var bootstrapCmd = &cobra.Command{
 		go Performer(messages, &wg)
 		db.Keys("*", messages, &wg)
 		wg.Wait()
-		log.Println("SUCCESS Bootstrap successfully finished.")
+		helpers.Logger.Info("Bootstrap successfully finished.")
 	},
 }
 
